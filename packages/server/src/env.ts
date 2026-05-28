@@ -60,6 +60,8 @@ export const env = {
     appKey: get("VOLC_RTC_APP_KEY"),
     agentEndpointId: get("VOLC_RTC_AGENT_ENDPOINT_ID"),
     testToken: get("VOLC_RTC_TEST_TOKEN"),
+    testRoom: get("VOLC_RTC_TEST_ROOM"),
+    testUser: get("VOLC_RTC_TEST_USER"),
   },
 };
 

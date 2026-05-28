@@ -83,7 +83,9 @@ pnpm dev
 | `tts` | `VOLC_TTS_APPID` + `VOLC_TTS_TOKEN` | 形态一无声；形态二智能体无法说话 |
 | `rtc` | `VOLC_RTC_APP_ID` + (`VOLC_RTC_APP_KEY` 或 `VOLC_RTC_TEST_TOKEN`) | 形态二无法进 RTC 房间，仅文本通道可用 |
 
-> 注：当前 demo 用的 RTC token 生成器是简化版 HMAC。生产环境请使用火山官方 Node 服务端 SDK 生成 V3 token，或在控制台生成测试 token 填入 `VOLC_RTC_TEST_TOKEN`。
+> RTC token：服务端实现了完整的 V3 协议（`packages/server/src/volc/rtc-token-v3.ts`，按 [火山官方 Node 参考](https://github.com/volcengine/rtc-aigc-demo/blob/main/Server/token.js) 1:1 移植，HMAC 已对照真实测试 token 验证通过）。配 `VOLC_RTC_APP_KEY` 后每个 session 动态签发；未配置时回退到 `VOLC_RTC_TEST_TOKEN`（房间 / 用户也固定为 `VOLC_RTC_TEST_ROOM` / `VOLC_RTC_TEST_USER`）。
+>
+> CLI：`pnpm --filter @aiperson/server run token gen myroom myuser` 直接生成，`run token verify <token>` 校验签名。
 
 ## 路线图
 
@@ -92,7 +94,7 @@ pnpm dev
 - [x] 形态一：图生视频 + TTS + 任务轮询 + 插入幻灯片
 - [x] 形态二：边界 DSL + 流式对话 + 双层过滤（文本通道）
 - [x] 形态二：`@volcengine/rtc` 前端集成 + RTC AIGC 智能体启停（音视频通道）
-- [ ] 生产级 RTC V3 token 生成器（替换 HMAC stub）
+- [x] 生产级 RTC V3 token 生成器（对照火山官方参考实现 1:1 移植，HMAC 已验证）
 - [ ] 角色形象训练 / 风格化（接入 SDXL LoRA 或火山即梦）
 - [ ] 课件知识库 RAG（向量化老师上传的讲义）
 - [ ] 学生端独立移动应用（脱离 WPS 单独答疑）
