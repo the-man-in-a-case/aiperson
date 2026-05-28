@@ -1,0 +1,20 @@
+{
+  "name": "aiperson",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WPS / PowerPoint AI digital human add-in: offline video + realtime 2D avatar",
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev:server": "pnpm --filter @aiperson/server dev",
+    "dev:addin": "pnpm --filter @aiperson/wps-addin dev",
+    "dev": "pnpm -r --parallel run dev",
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

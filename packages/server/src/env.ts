@@ -1,0 +1,50 @@
+import "dotenv/config";
+
+function get(name: string, fallback = ""): string {
+  const v = process.env[name];
+  return v == null || v === "" ? fallback : v;
+}
+
+function required(name: string): string {
+  const v = process.env[name];
+  if (!v) throw new Error(`Missing required env: ${name}`);
+  return v;
+}
+
+export const env = {
+  port: Number(get("PORT", "8787")),
+  corsOrigin: get("CORS_ORIGIN", "http://localhost:5173"),
+  logLevel: get("LOG_LEVEL", "info"),
+
+  ark: {
+    apiKey: get("ARK_API_KEY"),
+    baseUrl: get("ARK_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3"),
+    model: get("ARK_MODEL", "doubao-1-5-pro-32k-250115"),
+  },
+
+  visual: {
+    ak: get("VOLC_ACCESS_KEY_ID"),
+    sk: get("VOLC_SECRET_ACCESS_KEY"),
+    host: get("VOLC_VISUAL_HOST", "visual.volcengineapi.com"),
+    region: get("VOLC_REGION", "cn-north-1"),
+    reqKey: get("VOLC_OMNIHUMAN_REQ_KEY", "realman_avatar_picture_omni_human"),
+    submitAction: get("VOLC_OMNIHUMAN_SUBMIT_ACTION", "CVSync2AsyncSubmitTask"),
+    queryAction: get("VOLC_OMNIHUMAN_QUERY_ACTION", "CVSync2AsyncGetResult"),
+  },
+
+  tts: {
+    appid: get("VOLC_TTS_APPID"),
+    token: get("VOLC_TTS_TOKEN"),
+    cluster: get("VOLC_TTS_CLUSTER", "volcano_tts"),
+    voice: get("VOLC_TTS_VOICE", "BV700_streaming"),
+    host: get("VOLC_TTS_HOST", "openspeech.bytedance.com"),
+  },
+
+  rtc: {
+    appId: get("VOLC_RTC_APP_ID"),
+    appKey: get("VOLC_RTC_APP_KEY"),
+    avatarServiceId: get("VOLC_RTC_AVATAR_SERVICE_ID"),
+  },
+};
+
+export { required };

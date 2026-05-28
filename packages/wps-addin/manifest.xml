@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WPS 加载项清单。上传到 WPS 开放平台后，开发者后台会用此文件注册功能区按钮。
+  发布到生产时把 https://localhost:5173 替换为 CDN 上的 dist 地址。
+  文档: https://open.wps.cn/docs/office/jsapi
+-->
+<wps>
+  <name>AI 数字人</name>
+  <version>0.1.0</version>
+  <provider>aiperson</provider>
+  <description>课件中插入数字人视频与实时互动 2D 角色</description>
+  <onload>onAddinLoad</onload>
+  <category>WPP</category>
+  <ribbon>
+    <tab id="aiperson_tab" label="AI 数字人">
+      <group id="aiperson_group" label="数字人">
+        <button
+          id="btn_video"
+          label="插入数字人视频"
+          image="icons/video.png"
+          onAction="onClickVideo"
+          getEnabled="getEnabledAlways"
+        />
+        <button
+          id="btn_live"
+          label="实时互动角色"
+          image="icons/live.png"
+          onAction="onClickLive"
+          getEnabled="getEnabledAlways"
+        />
+      </group>
+    </tab>
+  </ribbon>
+  <taskpanes>
+    <taskpane id="aiperson_pane" title="AI 数字人">
+      <url>http://localhost:5173/?pane=main</url>
+    </taskpane>
+  </taskpanes>
+</wps>
