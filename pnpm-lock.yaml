@@ -59,6 +59,9 @@ importers:
       '@aiperson/shared':
         specifier: workspace:*
         version: link:../shared
+      '@volcengine/rtc':
+        specifier: ^4.62.10
+        version: 4.68.4
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -683,6 +686,9 @@ packages:
     peerDependencies:
       vite: ^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0
 
+  '@volcengine/rtc@4.68.4':
+    resolution: {integrity: sha512-ar6fnYww2VBuNP+ydx1wfqo9y0Q4Q2qzZkD7SzpV7JLCWYtBHjOEcHJrQNOtvC9PU6qQjSj7pBxEgEsDw7S2cg==}
+
   abort-controller@3.0.0:
     resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}
     engines: {node: '>=6.5'}
@@ -815,6 +821,9 @@ packages:
   event-target-shim@5.0.1:
     resolution: {integrity: sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==}
     engines: {node: '>=6'}
+
+  eventemitter3@4.0.7:
+    resolution: {integrity: sha512-8guHBZCwKnFhYdHr2ysuRWErTwhoN2X8XELRlrRwpmfeY2jjuUN4taQMsULKUVo1K4DvZl+0pgfyoysHxvmvEw==}
 
   fast-content-type-parse@1.1.0:
     resolution: {integrity: sha512-fBHHqSTFLVnR61C+gltJuE5GkVQMV0S2nqUO8TJ+5Z3qAKG8vAx4FKai1s5jq/inV1+sREynIWSuQ6HgoSXpDQ==}
@@ -1683,6 +1692,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@volcengine/rtc@4.68.4':
+    dependencies:
+      eventemitter3: 4.0.7
+
   abort-controller@3.0.0:
     dependencies:
       event-target-shim: 5.0.1
@@ -1835,6 +1848,8 @@ snapshots:
   escalade@3.2.0: {}
 
   event-target-shim@5.0.1: {}
+
+  eventemitter3@4.0.7: {}
 
   fast-content-type-parse@1.1.0: {}
 

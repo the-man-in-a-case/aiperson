@@ -72,13 +72,27 @@ pnpm dev
 
 详见 [docs/boundary-spec.md](docs/boundary-spec.md)。
 
+## 凭据自检与所需产品
+
+`GET /health` 返回的 `checks` 字段表示该能力是否已就绪：
+
+| 字段 | env 依赖 | 不就绪时影响 |
+|---|---|---|
+| `ark` | `ARK_API_KEY` | 形态二的"文本通道"无法回复 |
+| `visual` | `VOLC_ACCESS_KEY_ID` + `VOLC_SECRET_ACCESS_KEY` | 形态一无法生成视频；形态二的数字人智能体也无法启动（共用同一组 AK/SK） |
+| `tts` | `VOLC_TTS_APPID` + `VOLC_TTS_TOKEN` | 形态一无声；形态二智能体无法说话 |
+| `rtc` | `VOLC_RTC_APP_ID` + (`VOLC_RTC_APP_KEY` 或 `VOLC_RTC_TEST_TOKEN`) | 形态二无法进 RTC 房间，仅文本通道可用 |
+
+> 注：当前 demo 用的 RTC token 生成器是简化版 HMAC。生产环境请使用火山官方 Node 服务端 SDK 生成 V3 token，或在控制台生成测试 token 填入 `VOLC_RTC_TEST_TOKEN`。
+
 ## 路线图
 
 - [x] WPS 加载项骨架 + taskpane UI
 - [x] 后端代理 + 火山引擎签名 V4
 - [x] 形态一：图生视频 + TTS + 任务轮询 + 插入幻灯片
-- [x] 形态二：边界 DSL + 流式对话 + 双层过滤
-- [ ] 形态二接通火山 RTC 数字人 SDK 实时音视频流（需要在前端集成 `@volcengine/rtc` SDK）
+- [x] 形态二：边界 DSL + 流式对话 + 双层过滤（文本通道）
+- [x] 形态二：`@volcengine/rtc` 前端集成 + RTC AIGC 智能体启停（音视频通道）
+- [ ] 生产级 RTC V3 token 生成器（替换 HMAC stub）
 - [ ] 角色形象训练 / 风格化（接入 SDXL LoRA 或火山即梦）
 - [ ] 课件知识库 RAG（向量化老师上传的讲义）
 - [ ] 学生端独立移动应用（脱离 WPS 单独答疑）

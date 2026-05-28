@@ -83,11 +83,20 @@ export async function queryOmniHumanTask(taskId: string): Promise<QueryResult> {
     headers: signed.headers,
     body: signed.body,
   });
-  const json = (await res.body.json()) as {
+  const raw = await res.body.text();
+  let json: {
     code?: number;
     message?: string;
     data?: { status?: string; video_url?: string; resp_data?: string };
   };
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    throw new Error(`OmniHuman query invalid JSON: ${raw.slice(0, 200)}`);
+  }
+  if (json.code !== undefined && json.code !== 10000 && !json.data?.status) {
+    return { status: "failed", message: `${json.code}: ${json.message ?? raw.slice(0, 200)}` };
+  }
   const s = json.data?.status ?? "";
   const map: Record<string, QueryResult["status"]> = {
     in_queue: "pending",

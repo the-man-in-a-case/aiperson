@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { generateRtcToken } from "../volc/rtc.js";
+import { startVoiceAgent, stopVoiceAgent } from "../volc/rtc-agent.js";
 import { putSession, getSession, dropSession } from "../session.js";
 import { getDoubao, DOUBAO_MODEL } from "../volc/doubao.js";
 import {
@@ -9,6 +10,7 @@ import {
   type BoundaryConfig,
 } from "@aiperson/shared";
 import { checkUserInput, checkOutputChunk } from "../boundary/filter.js";
+import { env } from "../env.js";
 
 const boundarySchema = z.object({
   persona: z.string().default(""),
@@ -59,9 +61,53 @@ export async function liveRoutes(app: FastifyInstance): Promise<void> {
     });
   });
 
+  app.post("/live/agent/start", async (req, reply) => {
+    const body = req.body as {
+      sessionId: string;
+      roomId: string;
+      userId: string;
+      avatarImageUrl?: string;
+    };
+    const session = getSession(body.sessionId);
+    if (!session)
+      return reply.code(404).send({ error: "session_not_found" });
+    const agentUserId = `avatar_${body.userId}`;
+    try {
+      const taskId = await startVoiceAgent({
+        appId: env.rtc.appId,
+        roomId: body.roomId,
+        targetUserId: body.userId,
+        agentUserId,
+        systemPrompt: buildSystemPrompt(session.boundary),
+        voice: session.voice,
+        avatarImageUrl: body.avatarImageUrl,
+      });
+      (session as any).agentTaskId = taskId;
+      return reply.send({ taskId, agentUserId });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return reply.code(500).send({ error: msg });
+    }
+  });
+
   app.post("/live/stop", async (req, reply) => {
-    const body = req.body as { sessionId?: string };
-    if (body.sessionId) dropSession(body.sessionId);
+    const body = req.body as { sessionId?: string; roomId?: string };
+    if (body.sessionId) {
+      const s = getSession(body.sessionId);
+      const taskId = (s as any)?.agentTaskId as string | undefined;
+      if (taskId && body.roomId) {
+        try {
+          await stopVoiceAgent({
+            appId: env.rtc.appId,
+            roomId: body.roomId,
+            taskId,
+          });
+        } catch {
+          /* swallow: best-effort cleanup */
+        }
+      }
+      dropSession(body.sessionId);
+    }
     return reply.send({ ok: true });
   });
 

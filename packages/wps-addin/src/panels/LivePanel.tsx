@@ -1,8 +1,14 @@
-import { useRef, useState } from "react";
-import type { BoundaryConfig } from "@aiperson/shared";
+import { useEffect, useRef, useState } from "react";
+import type { BoundaryConfig, LiveSessionResponse } from "@aiperson/shared";
 import { ImageUpload, type UploadedImage } from "../components/ImageUpload.js";
 import { ChipInput } from "../components/ChipInput.js";
-import { chatStream, startLive, stopLive } from "../api/client.js";
+import {
+  chatStream,
+  startAgent,
+  startLive,
+  stopLive,
+} from "../api/client.js";
+import { joinAvatarRoom, type RtcSession } from "../rtc/client.js";
 
 interface Message {
   role: "user" | "assistant" | "refusal";
@@ -23,16 +29,22 @@ export function LivePanel(): JSX.Element {
   const [image, setImage] = useState<UploadedImage | null>(null);
   const [boundary, setBoundary] = useState<BoundaryConfig>(DEFAULT_BOUNDARY);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [rtcInfo, setRtcInfo] = useState<{
-    roomId: string;
-    userId: string;
-    rtcAppId: string;
-  } | null>(null);
+  const [rtcInfo, setRtcInfo] = useState<LiveSessionResponse | null>(null);
+  const [agentReady, setAgentReady] = useState<boolean>(false);
+  const [micOn, setMicOn] = useState<boolean>(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>("");
   const [streaming, setStreaming] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
+  const rtcRef = useRef<RtcSession | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (rtcRef.current) void rtcRef.current.leave();
+    };
+  }, []);
 
   const update = <K extends keyof BoundaryConfig>(
     k: K,
@@ -55,12 +67,44 @@ export function LivePanel(): JSX.Element {
         imageMime: image?.mime,
       });
       setSessionId(r.sessionId);
-      setRtcInfo({
-        roomId: r.roomId,
-        userId: r.userId,
-        rtcAppId: r.rtcAppId,
-      });
+      setRtcInfo(r);
       setMessages([]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const onJoinRtc = async (): Promise<void> => {
+    if (!sessionId || !rtcInfo || !videoContainerRef.current) return;
+    setError("");
+    try {
+      const session = await joinAvatarRoom({
+        appId: rtcInfo.rtcAppId,
+        token: rtcInfo.rtcToken,
+        roomId: rtcInfo.roomId,
+        userId: rtcInfo.userId,
+        avatarUserId: rtcInfo.avatarUserId,
+        remoteVideoEl: videoContainerRef.current,
+        onError: (msg) => setError(msg),
+      });
+      rtcRef.current = session;
+      await startAgent({
+        sessionId,
+        roomId: rtcInfo.roomId,
+        userId: rtcInfo.userId,
+      });
+      setAgentReady(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const onToggleMic = async (): Promise<void> => {
+    if (!rtcRef.current) return;
+    const next = !micOn;
+    try {
+      await rtcRef.current.toggleMic(next);
+      setMicOn(next);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -68,9 +112,15 @@ export function LivePanel(): JSX.Element {
 
   const onStop = async (): Promise<void> => {
     if (!sessionId) return;
-    await stopLive(sessionId);
+    if (rtcRef.current) {
+      await rtcRef.current.leave();
+      rtcRef.current = null;
+    }
+    await stopLive(sessionId, rtcInfo?.roomId);
     setSessionId(null);
     setRtcInfo(null);
+    setAgentReady(false);
+    setMicOn(false);
   };
 
   const onSend = async (): Promise<void> => {
@@ -200,9 +250,53 @@ export function LivePanel(): JSX.Element {
       <h3>实时对话 · {boundary.persona || "未命名角色"}</h3>
       {rtcInfo && (
         <div className="field-hint" style={{ marginBottom: 8 }}>
-          RTC 房间：{rtcInfo.roomId} · 用户：{rtcInfo.userId.slice(0, 10)}
+          RTC 房间：{rtcInfo.roomId} · 用户：{rtcInfo.userId.slice(0, 12)}
+          {agentReady ? " · 智能体已就位" : ""}
         </div>
       )}
+
+      <div
+        ref={videoContainerRef}
+        style={{
+          width: "100%",
+          aspectRatio: "16 / 9",
+          background: "#0d1117",
+          borderRadius: 6,
+          marginBottom: 8,
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        {!agentReady && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#8b949e",
+              fontSize: 12,
+            }}
+          >
+            点击"启动数字人"加入 RTC 房间
+          </div>
+        )}
+      </div>
+
+      <div className="row" style={{ marginBottom: 8 }}>
+        {!agentReady ? (
+          <button className="primary" onClick={onJoinRtc}>
+            启动数字人
+          </button>
+        ) : (
+          <button onClick={onToggleMic}>
+            {micOn ? "🎙️ 关闭麦克风" : "🎙️ 开启麦克风"}
+          </button>
+        )}
+        <button onClick={onStop}>结束会话</button>
+      </div>
+
       <div className="messages" ref={scrollRef}>
         {messages.length === 0 && (
           <div className="field-hint">输入第一句话开始测试角色对话边界</div>
@@ -229,9 +323,8 @@ export function LivePanel(): JSX.Element {
       </div>
       <div className="row" style={{ marginTop: 6 }}>
         <button className="primary" onClick={onSend} disabled={streaming}>
-          发送
+          发送（文本通道）
         </button>
-        <button onClick={onStop}>结束会话</button>
       </div>
       {error && <div className="status error">错误：{error}</div>}
     </div>

@@ -1,4 +1,19 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+import path from "node:path";
+import fs from "node:fs";
+import url from "node:url";
+
+const here = path.dirname(url.fileURLToPath(import.meta.url));
+for (const candidate of [
+  path.resolve(process.cwd(), ".env"),
+  path.resolve(here, "../../../.env"),
+  path.resolve(here, "../../../../.env"),
+]) {
+  if (fs.existsSync(candidate)) {
+    dotenv.config({ path: candidate });
+    break;
+  }
+}
 
 function get(name: string, fallback = ""): string {
   const v = process.env[name];
@@ -43,7 +58,8 @@ export const env = {
   rtc: {
     appId: get("VOLC_RTC_APP_ID"),
     appKey: get("VOLC_RTC_APP_KEY"),
-    avatarServiceId: get("VOLC_RTC_AVATAR_SERVICE_ID"),
+    agentEndpointId: get("VOLC_RTC_AGENT_ENDPOINT_ID"),
+    testToken: get("VOLC_RTC_TEST_TOKEN"),
   },
 };
 

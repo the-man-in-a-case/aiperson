@@ -44,11 +44,29 @@ export async function startLive(args: {
   return res.json();
 }
 
-export async function stopLive(sessionId: string): Promise<void> {
+export async function startAgent(args: {
+  sessionId: string;
+  roomId: string;
+  userId: string;
+  avatarImageUrl?: string;
+}): Promise<{ taskId: string; agentUserId: string }> {
+  const res = await fetch(`${BASE}/live/agent/start`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(args),
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`agent start failed: ${t}`);
+  }
+  return res.json();
+}
+
+export async function stopLive(sessionId: string, roomId?: string): Promise<void> {
   await fetch(`${BASE}/live/stop`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ sessionId }),
+    body: JSON.stringify({ sessionId, roomId }),
   });
 }
 
