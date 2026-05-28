@@ -42,3 +42,24 @@ export async function insertImageToSlide(imageUrl: string): Promise<void> {
   }
   slide.Shapes.AddPicture(imageUrl, false, true, 80, 80, 320, 320);
 }
+
+// Best-effort: register a callback so that when the user enters slideshow
+// mode, the overlay launcher fires. WPS event surface varies by version, so
+// we wrap in try/catch and let the UI fall back to a manual button.
+export function onSlideShowBegin(cb: () => void): () => void {
+  const app = getPresentation() as any;
+  if (!app?.SlideShowBegin) return () => {};
+  try {
+    const handler = (): void => cb();
+    app.SlideShowBegin.connect(handler);
+    return () => {
+      try {
+        app.SlideShowBegin.disconnect(handler);
+      } catch {
+        /* noop */
+      }
+    };
+  } catch {
+    return () => {};
+  }
+}

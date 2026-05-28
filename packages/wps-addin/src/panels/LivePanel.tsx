@@ -9,6 +9,11 @@ import {
   stopLive,
 } from "../api/client.js";
 import { joinAvatarRoom, type RtcSession } from "../rtc/client.js";
+import {
+  openOverlayWindow,
+  publishOverlayPayload,
+} from "../overlay/bridge.js";
+import { onSlideShowBegin } from "../wps/wps.js";
 
 interface Message {
   role: "user" | "assistant" | "refusal";
@@ -45,6 +50,19 @@ export function LivePanel(): JSX.Element {
       if (rtcRef.current) void rtcRef.current.leave();
     };
   }, []);
+
+  useEffect(() => {
+    if (!sessionId || !rtcInfo?.rtcAppId) return;
+    const off = onSlideShowBegin(() => {
+      publishOverlayPayload({
+        sessionId,
+        rtcInfo,
+        personaLabel: boundary.persona,
+      });
+      openOverlayWindow();
+    });
+    return off;
+  }, [sessionId, rtcInfo, boundary.persona]);
 
   const update = <K extends keyof BoundaryConfig>(
     k: K,
@@ -108,6 +126,26 @@ export function LivePanel(): JSX.Element {
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
+  };
+
+  const onOverlay = (): void => {
+    if (!sessionId || !rtcInfo) return;
+    if (!rtcInfo.rtcAppId) {
+      setError("未配置 RTC，无法弹出悬浮窗");
+      return;
+    }
+    if (rtcRef.current) {
+      void rtcRef.current.leave();
+      rtcRef.current = null;
+      setAgentReady(false);
+      setMicOn(false);
+    }
+    publishOverlayPayload({
+      sessionId,
+      rtcInfo,
+      personaLabel: boundary.persona,
+    });
+    openOverlayWindow();
   };
 
   const onStop = async (): Promise<void> => {
@@ -286,7 +324,14 @@ export function LivePanel(): JSX.Element {
 
       <div className="row" style={{ marginBottom: 8 }}>
         {!agentReady ? (
-          <button className="primary" onClick={onJoinRtc}>
+          <button
+            className="primary"
+            onClick={onJoinRtc}
+            disabled={!rtcInfo?.rtcAppId}
+            title={
+              rtcInfo?.rtcAppId ? "" : "未配置 VOLC_RTC_APP_ID，仅可用文本通道"
+            }
+          >
             启动数字人
           </button>
         ) : (
@@ -294,6 +339,9 @@ export function LivePanel(): JSX.Element {
             {micOn ? "🎙️ 关闭麦克风" : "🎙️ 开启麦克风"}
           </button>
         )}
+        <button onClick={onOverlay} disabled={!sessionId}>
+          弹出放映悬浮窗
+        </button>
         <button onClick={onStop}>结束会话</button>
       </div>
 

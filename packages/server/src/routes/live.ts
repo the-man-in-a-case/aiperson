@@ -50,14 +50,19 @@ export async function liveRoutes(app: FastifyInstance): Promise<void> {
       history: [],
       createdAt: Date.now(),
     });
-    const rtc = generateRtcToken({ roomId: `aiperson_${sessionId.slice(0, 8)}` });
+    let rtc: ReturnType<typeof generateRtcToken> | null = null;
+    try {
+      rtc = generateRtcToken({ roomId: `aiperson_${sessionId.slice(0, 8)}` });
+    } catch {
+      // RTC not configured — text channel still works
+    }
     return reply.send({
       sessionId,
-      rtcAppId: rtc.appId,
-      rtcToken: rtc.token,
-      roomId: rtc.roomId,
-      userId: rtc.userId,
-      avatarUserId: `avatar_${rtc.userId}`,
+      rtcAppId: rtc?.appId ?? "",
+      rtcToken: rtc?.token ?? "",
+      roomId: rtc?.roomId ?? "",
+      userId: rtc?.userId ?? "",
+      avatarUserId: rtc ? `avatar_${rtc.userId}` : "",
     });
   });
 
