@@ -79,7 +79,7 @@ pnpm dev
 | 字段 | env 依赖 | 不就绪时影响 |
 |---|---|---|
 | `ark` | `ARK_API_KEY` | 形态二的"文本通道"无法回复 |
-| `visual` | `VOLC_ACCESS_KEY_ID` + `VOLC_SECRET_ACCESS_KEY` | 形态一无法生成视频；形态二的数字人智能体也无法启动（共用同一组 AK/SK） |
+| `visual` | `VOLC_ACCESS_KEY_ID` + `VOLC_SECRET_ACCESS_KEY` | 形态二智能体启动鉴权（共用此 AK/SK）。形态一额外需要"生成数字人视频"产品授权（控制台 → 智能视觉服务 → 单独开通；开通后把 console 给出的 req_key 字符串填到 `VOLC_OMNIHUMAN_REQ_KEY`） |
 | `tts` | `VOLC_TTS_APPID` + `VOLC_TTS_TOKEN` | 形态一无声；形态二智能体无法说话 |
 | `rtc` | `VOLC_RTC_APP_ID` + (`VOLC_RTC_APP_KEY` 或 `VOLC_RTC_TEST_TOKEN`) | 形态二无法进 RTC 房间，仅文本通道可用 |
 

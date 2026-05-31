@@ -50,6 +50,7 @@ export const env = {
   tts: {
     appid: get("VOLC_TTS_APPID"),
     token: get("VOLC_TTS_TOKEN"),
+    sk: get("VOLC_TTS_SK"),
     cluster: get("VOLC_TTS_CLUSTER", "volcano_tts"),
     voice: get("VOLC_TTS_VOICE", "BV700_streaming"),
     host: get("VOLC_TTS_HOST", "openspeech.bytedance.com"),

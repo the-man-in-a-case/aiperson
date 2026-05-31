@@ -51,8 +51,18 @@ export async function submitOmniHumanTask(args: SubmitArgs): Promise<string> {
     message?: string;
     data?: { task_id?: string };
   };
+  if (json.code === 50200)
+    throw new Error(
+      `OmniHuman 数字人服务未在你的账号开通。请到火山引擎控制台 → 智能视觉服务 → 生成数字人视频 → 开通，然后把控制台显示的 req_key 填到 VOLC_OMNIHUMAN_REQ_KEY 环境变量。(原始错误: ${json.message})`,
+    );
+  if (json.code === 50400)
+    throw new Error(
+      `OmniHuman 访问被拒绝，AK/SK 不具备该资源访问权限。(原始错误: ${json.message})`,
+    );
   if (json.code !== 10000 || !json.data?.task_id)
-    throw new Error(`OmniHuman submit failed: ${json.message ?? "unknown"}`);
+    throw new Error(
+      `OmniHuman submit failed: code=${json.code} ${json.message ?? "unknown"}`,
+    );
   return json.data.task_id;
 }
 
