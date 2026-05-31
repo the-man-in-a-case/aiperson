@@ -79,7 +79,11 @@ pnpm dev
 | 字段 | env 依赖 | 不就绪时影响 |
 |---|---|---|
 | `ark` | `ARK_API_KEY` | 形态二的"文本通道"无法回复 |
-| `visual` | `VOLC_ACCESS_KEY_ID` + `VOLC_SECRET_ACCESS_KEY` | 形态二智能体启动鉴权（共用此 AK/SK）。形态一额外需要"生成数字人视频"产品授权（控制台 → 智能视觉服务 → 单独开通；开通后把 console 给出的 req_key 字符串填到 `VOLC_OMNIHUMAN_REQ_KEY`） |
+| `visual` | `VOLC_ACCESS_KEY_ID` + `VOLC_SECRET_ACCESS_KEY` | 形态一 OmniHuman 1.5（`Action=CVSubmitTask`, `req_key=jimeng_realman_avatar_picture_omni_v15`）和形态二智能体启动都用这对 AK/SK |
+
+**形态一 重要前置**：OmniHuman 服务端会从你的 `PUBLIC_BASE_URL` 抓 image_url / audio_url。
+本地开发时把 8787 端口用 ngrok / cloudflared 暴露到公网，然后把 `.env` 的
+`PUBLIC_BASE_URL` 设成那个公网域名。否则 Volc 抓不到本地 /media 资源会 504。
 | `tts` | `VOLC_TTS_APPID` + `VOLC_TTS_TOKEN` | 形态一无声；形态二智能体无法说话 |
 | `rtc` | `VOLC_RTC_APP_ID` + (`VOLC_RTC_APP_KEY` 或 `VOLC_RTC_TEST_TOKEN`) | 形态二无法进 RTC 房间，仅文本通道可用 |
 
@@ -91,7 +95,7 @@ pnpm dev
 
 - [x] WPS 加载项骨架 + taskpane UI
 - [x] 后端代理 + 火山引擎签名 V4
-- [x] 形态一：图生视频 + TTS + 任务轮询 + 插入幻灯片
+- [x] 形态一：图生视频（OmniHuman 1.5）+ TTS + 任务轮询 + 插入幻灯片
 - [x] 形态二：边界 DSL + 流式对话 + 双层过滤（文本通道）
 - [x] 形态二：`@volcengine/rtc` 前端集成 + RTC AIGC 智能体启停（音视频通道）
 - [x] 生产级 RTC V3 token 生成器（对照火山官方参考实现 1:1 移植，HMAC 已验证）

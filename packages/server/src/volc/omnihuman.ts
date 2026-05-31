@@ -2,19 +2,25 @@ import { request } from "undici";
 import { env } from "../env.js";
 import { signVolcRequest } from "./sign.js";
 
-// OmniHuman is exposed under VolcEngine 视觉智能 OpenAPI (service "cv").
-// Submit -> returns task_id; Query -> returns status + result urls.
-// Refer to: https://www.volcengine.com/docs/6791
+// VolcEngine 智能视觉 - OmniHuman 1.5 数字人视频
+// Doc: https://www.volcengine.com/docs/85621/1829013
+//
+// Service=cv, Region=cn-north-1, Action=CVSubmitTask | CVGetResult,
+// Version=2022-08-31. Both image and audio are passed as PUBLIC URLs
+// (not base64), so the caller must host them somewhere reachable
+// from VolcEngine's servers.
 
 const SERVICE = "cv";
 const VERSION = "2022-08-31";
 
 export interface SubmitArgs {
-  imageBase64: string;
-  audioBase64?: string;
-  audioUrl?: string;
-  text?: string;
-  voice?: string;
+  imageUrl: string;
+  audioUrl: string;
+  prompt?: string;
+  seed?: number;
+  outputResolution?: 720 | 1080;
+  peFastMode?: boolean;
+  maskUrls?: string[];
 }
 
 export async function submitOmniHumanTask(args: SubmitArgs): Promise<string> {
@@ -23,12 +29,14 @@ export async function submitOmniHumanTask(args: SubmitArgs): Promise<string> {
 
   const payload: Record<string, unknown> = {
     req_key: env.visual.reqKey,
-    image_base64: args.imageBase64,
+    image_url: args.imageUrl,
+    audio_url: args.audioUrl,
   };
-  if (args.audioBase64) payload.audio_base64 = args.audioBase64;
-  if (args.audioUrl) payload.audio_url = args.audioUrl;
-  if (args.text) payload.text = args.text;
-  if (args.voice) payload.voice = args.voice;
+  if (args.prompt) payload.prompt = args.prompt;
+  if (args.seed !== undefined) payload.seed = args.seed;
+  if (args.outputResolution) payload.output_resolution = args.outputResolution;
+  if (args.peFastMode !== undefined) payload.pe_fast_mode = args.peFastMode;
+  if (args.maskUrls?.length) payload.mask_url = args.maskUrls;
 
   const signed = signVolcRequest({
     ak: env.visual.ak,
@@ -46,19 +54,21 @@ export async function submitOmniHumanTask(args: SubmitArgs): Promise<string> {
     headers: signed.headers,
     body: signed.body,
   });
-  const json = (await res.body.json()) as {
-    code?: number;
-    message?: string;
-    data?: { task_id?: string };
-  };
+  const raw = await res.body.text();
+  let json: { code?: number; message?: string; data?: { task_id?: string } };
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    throw new Error(
+      `OmniHuman submit non-JSON response (status=${res.statusCode}): ${raw.slice(0, 300)}`,
+    );
+  }
   if (json.code === 50200)
     throw new Error(
-      `OmniHuman 数字人服务未在你的账号开通。请到火山引擎控制台 → 智能视觉服务 → 生成数字人视频 → 开通，然后把控制台显示的 req_key 填到 VOLC_OMNIHUMAN_REQ_KEY 环境变量。(原始错误: ${json.message})`,
+      `OmniHuman 服务未在你的账号开通或 req_key 不匹配。${json.message ?? ""}`,
     );
   if (json.code === 50400)
-    throw new Error(
-      `OmniHuman 访问被拒绝，AK/SK 不具备该资源访问权限。(原始错误: ${json.message})`,
-    );
+    throw new Error(`OmniHuman 访问被拒绝。${json.message ?? ""}`);
   if (json.code !== 10000 || !json.data?.task_id)
     throw new Error(
       `OmniHuman submit failed: code=${json.code} ${json.message ?? "unknown"}`,
@@ -97,7 +107,7 @@ export async function queryOmniHumanTask(taskId: string): Promise<QueryResult> {
   let json: {
     code?: number;
     message?: string;
-    data?: { status?: string; video_url?: string; resp_data?: string };
+    data?: { status?: string; video_url?: string };
   };
   try {
     json = JSON.parse(raw);
@@ -105,26 +115,20 @@ export async function queryOmniHumanTask(taskId: string): Promise<QueryResult> {
     throw new Error(`OmniHuman query invalid JSON: ${raw.slice(0, 200)}`);
   }
   if (json.code !== undefined && json.code !== 10000 && !json.data?.status) {
-    return { status: "failed", message: `${json.code}: ${json.message ?? raw.slice(0, 200)}` };
+    return {
+      status: "failed",
+      message: `${json.code}: ${json.message ?? raw.slice(0, 200)}`,
+    };
   }
   const s = json.data?.status ?? "";
   const map: Record<string, QueryResult["status"]> = {
+    processing: "pending",
     in_queue: "pending",
     generating: "running",
     done: "succeeded",
     not_found: "failed",
-    expire: "failed",
+    expired: "failed",
   };
   const status = map[s] ?? "running";
-  let videoUrl = json.data?.video_url;
-  if (!videoUrl && json.data?.resp_data) {
-    try {
-      const parsed = JSON.parse(json.data.resp_data) as { video_url?: string };
-      videoUrl = parsed.video_url;
-    } catch {
-      // resp_data may be a plain URL string
-      videoUrl = json.data.resp_data;
-    }
-  }
-  return { status, videoUrl, message: json.message };
+  return { status, videoUrl: json.data?.video_url, message: json.message };
 }

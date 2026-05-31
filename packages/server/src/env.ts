@@ -30,6 +30,7 @@ export const env = {
   port: Number(get("PORT", "8787")),
   corsOrigin: get("CORS_ORIGIN", "http://localhost:5173"),
   logLevel: get("LOG_LEVEL", "info"),
+  publicBaseUrl: get("PUBLIC_BASE_URL", "http://localhost:8787"),
 
   ark: {
     apiKey: get("ARK_API_KEY"),

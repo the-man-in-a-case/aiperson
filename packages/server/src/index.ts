@@ -4,6 +4,7 @@ import sensible from "@fastify/sensible";
 import { env } from "./env.js";
 import { videoRoutes } from "./routes/video.js";
 import { liveRoutes } from "./routes/live.js";
+import { mediaRoutes } from "./routes/media.js";
 
 async function main(): Promise<void> {
   const app = Fastify({
@@ -29,6 +30,7 @@ async function main(): Promise<void> {
     },
   }));
 
+  await app.register(mediaRoutes);
   await app.register(videoRoutes);
   await app.register(liveRoutes);
 
